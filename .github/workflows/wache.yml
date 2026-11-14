@@ -16,8 +16,17 @@ jobs:
       SMTP_PASSWORT: ${{ secrets.SMTP_PASSWORT }}
     steps:
       - uses: actions/checkout@v4
+      - name: Zustand holen
+        run: |
+          mkdir -p state
+          git fetch origin zustand 2>/dev/null && git show origin/zustand:zustand.json > state/zustand.json || true
       - run: pip install "httpx[http2]"
       - run: python wache.py ${{ inputs.testalarm && 'test-alarm' || '' }}
-      - run: |
-          git config user.name wache; git config user.email wache@users.noreply.github.com
-          git add state && (git diff --cached --quiet || (git commit -m "zustand" && git push)) || true
+      - name: Zustand sichern
+        run: |
+          [ -f state/zustand.json ] || exit 0
+          git fetch origin zustand 2>/dev/null && git show origin/zustand:zustand.json 2>/dev/null | cmp -s - state/zustand.json && exit 0
+          d=$(mktemp -d); cp state/zustand.json $d/; cd $d
+          git init -q -b zustand; git config user.name wache; git config user.email wache@users.noreply.github.com
+          git add zustand.json; git commit -qm zustand
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" zustand
