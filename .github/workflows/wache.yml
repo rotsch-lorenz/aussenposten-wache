@@ -23,6 +23,7 @@ jobs:
       - run: pip install "httpx[http2]"
       - run: python wache.py ${{ inputs.testalarm && 'test-alarm' || '' }}
       - name: Zustand sichern
+        if: always()
         run: |
           [ -f state/zustand.json ] || exit 0
           git fetch origin zustand 2>/dev/null && git show origin/zustand:zustand.json 2>/dev/null | cmp -s - state/zustand.json && exit 0

@@ -34,6 +34,8 @@ def proben():
     return f
 
 def mail(betreff, text):
+    if not os.environ.get("SMTP_PASSWORT"):
+        print("Kein SMTP-Zugang: Meldung nur über den Lauf-Status (GitHub mailt bei Fehlschlag)"); return
     msg = EmailMessage()
     msg["Subject"] = betreff; msg["From"] = os.environ["MAIL_VON"]; msg["To"] = os.environ["MAIL_AN"]
     msg["Date"] = time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime())
@@ -44,7 +46,8 @@ def mail(betreff, text):
 
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == "test-alarm":
-        mail("Testalarm Außenposten Website-Check", "Testalarm vom Außenposten, Zeit UTC " + time.strftime("%H:%M:%S")); return
+        mail("Testalarm Außenposten Website-Check", "Testalarm vom Außenposten, Zeit UTC " + time.strftime("%H:%M:%S"))
+        sys.exit("TESTALARM: absichtlich fehlgeschlagen, GitHub meldet den Lauf")
     z = json.load(open(ZUSTAND)) if os.path.exists(ZUSTAND) else {"ausfall": False}
     f = proben()
     if f and not os.environ.get("EINMAL"):
@@ -59,5 +62,6 @@ def main():
         mail("Website-Check wieder online (Außenposten)", f"Wieder online um {jetzt}, Ausfall seit {z.get('seit')}.")
         z = {"ausfall": False}
     os.makedirs("state", exist_ok=True); json.dump(z, open(ZUSTAND, "w"))
+    if f: sys.exit("AUSFALL Website-Check: " + "; ".join(f))
 
 main()
