@@ -1,0 +1,23 @@
+name: wache
+on:
+  schedule: [{cron: "*/5 * * * *"}]
+  workflow_dispatch:
+    inputs: {testalarm: {type: boolean, default: false}}
+permissions: {contents: write}
+concurrency: wache
+jobs:
+  wache:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      MAIL_AN: ${{ secrets.MAIL_AN }}
+      MAIL_VON: ${{ secrets.MAIL_VON }}
+      SMTP_BENUTZER: ${{ secrets.SMTP_BENUTZER }}
+      SMTP_PASSWORT: ${{ secrets.SMTP_PASSWORT }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install "httpx[http2]"
+      - run: python wache.py ${{ inputs.testalarm && 'test-alarm' || '' }}
+      - run: |
+          git config user.name wache; git config user.email wache@users.noreply.github.com
+          git add state && (git diff --cached --quiet || (git commit -m "zustand" && git push)) || true
