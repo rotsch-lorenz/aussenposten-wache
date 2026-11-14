@@ -1,0 +1,18 @@
+name: keepalive
+on:
+  schedule: [{cron: "17 4 1 * *"}]
+  workflow_dispatch:
+permissions: {contents: write, actions: write}
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Aktivität auf Zweig zustand und Wache aktiv halten
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: |
+          d=$(mktemp -d); cd $d
+          git init -q -b zustand; git config user.name wache; git config user.email wache@users.noreply.github.com
+          date -u +%FT%TZ > keepalive.txt; git add keepalive.txt; git commit -qm "keepalive"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" HEAD:refs/heads/keepalive
+          gh api -X PUT repos/${{ github.repository }}/actions/workflows/wache.yml/enable
